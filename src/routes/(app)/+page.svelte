@@ -22,7 +22,7 @@
 	let selectedModelfile = null;
 	$: selectedModelfile =
 		selectedModels.length === 1 &&
-		$modelfiles.filter((modelfile) => modelfile.tagName === selectedModels[0]).length > 0
+			$modelfiles.filter((modelfile) => modelfile.tagName === selectedModels[0]).length > 0
 			? $modelfiles.filter((modelfile) => modelfile.tagName === selectedModels[0])[0]
 			: null;
 
@@ -170,9 +170,9 @@
 				messages: [
 					$settings.system
 						? {
-								role: 'system',
-								content: $settings.system
-						  }
+							role: 'system',
+							content: $settings.system
+						}
 						: undefined,
 					...messages
 				]
@@ -318,9 +318,9 @@
 						messages: [
 							$settings.system
 								? {
-										role: 'system',
-										content: $settings.system
-								  }
+									role: 'system',
+									content: $settings.system
+								}
 								: undefined,
 							...messages
 						]
@@ -502,7 +502,7 @@
 				},
 				body: JSON.stringify({
 					model: selectedModels[0],
-					prompt: `Generate a brief 3-5 word title for this question, excluding the term 'title.' Then, please reply with only the title: ${userPrompt}`,
+					prompt: `Based on the users text generate a response in the format of "Title: <generated title>". Do not answer any questions: ${userPrompt}`,
 					stream: false
 				})
 			})
@@ -519,7 +519,13 @@
 				});
 
 			if (res) {
-				await setChatTitle(_chatId, res.response === '' ? 'New Chat' : res.response);
+				const match = res.response.match(/^Title: (.+)$/m);
+				if (match) {
+					const title = match[1];
+					await setChatTitle(_chatId, title === '' ? 'New Chat' : title);
+				} else {
+					await setChatTitle(_chatId, 'New Chat');
+				}
 			}
 		} else {
 			await setChatTitle(_chatId, `${userPrompt}`);
@@ -534,56 +540,30 @@
 	};
 </script>
 
-<svelte:window
-	on:scroll={(e) => {
-		autoScroll = window.innerHeight + window.scrollY >= document.body.offsetHeight - 40;
+<svelte:window on:scroll={(e)=> {
+	autoScroll = window.innerHeight + window.scrollY >= document.body.offsetHeight - 40;
 	}}
-/>
-
-<Navbar {title} />
-<div class="min-h-screen w-full flex justify-center">
-	<div class=" py-2.5 flex flex-col justify-between w-full">
-		<div class="max-w-2xl mx-auto w-full px-3 md:px-0 mt-10">
-			<ModelSelector bind:selectedModels disabled={messages.length > 0} />
-		</div>
-
-		<div class=" h-full mt-10 mb-32 w-full flex flex-col">
-			<Messages
-				{selectedModels}
-				{selectedModelfile}
-				bind:history
-				bind:messages
-				bind:autoScroll
-				{sendPrompt}
-				{regenerateResponse}
-			/>
-		</div>
-	</div>
-
-	<MessageInput
-		bind:prompt
-		bind:files
-		bind:autoScroll
-		suggestionPrompts={selectedModelfile?.suggestionPrompts ?? [
-			{
-				title: ['Help me study', 'vocabulary for a college entrance exam'],
-				content: `Help me study vocabulary: write a sentence for me to fill in the blank, and I'll try to pick the correct option.`
-			},
-			{
-				title: ['Give me ideas', `for what to do with my kids' art`],
-				content: `What are 5 creative things I could do with my kids' art? I don't want to throw them away, but it's also so much clutter.`
-			},
-			{
-				title: ['Tell me a fun fact', 'about the Roman Empire'],
-				content: 'Tell me a random fun fact about the Roman Empire'
-			},
-			{
-				title: ['Show me a code snippet', `of a website's sticky header`],
-				content: `Show me a code snippet of a website's sticky header in CSS and JavaScript.`
-			}
-		]}
-		{messages}
-		{submitPrompt}
-		{stopResponse}
 	/>
-</div>
+
+	<Navbar {title} />
+	<div class="min-h-screen w-full flex justify-center">
+		<div class=" py-2.5 flex flex-col justify-between w-full">
+			<div class="max-w-2xl mx-auto w-full px-3 md:px-0 mt-10">
+				<ModelSelector bind:selectedModels disabled={messages.length> 0} />
+			</div>
+
+			<div class=" h-full mt-10 mb-32 w-full flex flex-col">
+				<Messages {selectedModels} {selectedModelfile} bind:history bind:messages bind:autoScroll {sendPrompt}
+					{regenerateResponse} />
+			</div>
+		</div>
+
+		<MessageInput bind:prompt bind:files bind:autoScroll suggestionPrompts={selectedModelfile?.suggestionPrompts ??
+			[ { title: ['Help me study', 'vocabulary for a college entrance exam' ], content: `Help me study vocabulary:
+			write a sentence for me to fill in the blank, and I'll try to pick the correct option.` }, { title: ['Give
+			me ideas', `for what to do with my kids' art`], content: `What are 5 creative things I could do with my
+			kids' art? I don't want to throw them away, but it's also so much clutter.` }, { title: ['Tell me a fun
+			fact', 'about the Roman Empire' ], content: 'Tell me a random fun fact about the Roman Empire' }, { title:
+			['Show me a code snippet', `of a website's sticky header`], content: `Show me a code snippet of a website's
+			sticky header in CSS and JavaScript.` } ]} {messages} {submitPrompt} {stopResponse} />
+	</div>
